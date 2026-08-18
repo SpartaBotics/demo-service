@@ -1,0 +1,3 @@
+# Python bytecode cache — created every time the app or tests run.
+__pycache__/
+*.pyc

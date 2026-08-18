@@ -9,7 +9,8 @@ on:
 
 jobs:
   verify:
-    runs-on: ubuntu-latest
+    # our runner container on the staging server (was: ubuntu-latest)
+    runs-on: [self-hosted, staging]
     steps:
       - uses: actions/checkout@v4
       - name: Run tests

@@ -32,3 +32,13 @@ jobs:
           docker exec demo-service-staging python3 -c \
             "import urllib.request; print(urllib.request.urlopen('http://localhost:8000/').read().decode())" \
             | grep $SHA
+
+      # End-to-end test: hit the running service through its published port,
+      # exactly like a real client would. A throwaway container with host
+      # networking plays the client (direct container->host routing is
+      # firewalled on this machine). If staging misbehaves, this goes red —
+      # and a red staging blocks any release tag.
+      - name: End-to-end test on staging
+        run: |
+          SHA=$(git rev-parse --short HEAD)
+          docker run --rm --network host demo-service:git-$SHA python3 -c "import json,urllib.request; b=json.load(urllib.request.urlopen('http://localhost:8081/',timeout=5)); assert b['service']=='demo-service', b; assert b['git_sha']=='$SHA', b; print('e2e ok:', b)"

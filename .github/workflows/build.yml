@@ -18,3 +18,17 @@ jobs:
           SHA=$(git rev-parse --short HEAD)
           docker build --build-arg GIT_SHA=$SHA -t demo-service:git-$SHA .
           echo "built demo-service:git-$SHA"
+
+      # Replace whatever runs on the integration server with the package we
+      # just built, then prove the NEW version is the one answering (smoke
+      # test) — if it isn't, this step fails and the run goes red.
+      - name: Deploy to integration server
+        run: |
+          SHA=$(git rev-parse --short HEAD)
+          docker rm -f demo-service-staging 2>/dev/null || true
+          docker run -d --name demo-service-staging --restart unless-stopped \
+            -p 8080:8000 demo-service:git-$SHA
+          sleep 2
+          docker exec demo-service-staging python3 -c \
+            "import urllib.request; print(urllib.request.urlopen('http://localhost:8000/').read().decode())" \
+            | grep $SHA

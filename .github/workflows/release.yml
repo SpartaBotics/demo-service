@@ -4,6 +4,10 @@
 # been running and e2e-testing since its merge (build once). Before touching
 # production it stops at the approval gate: the "production" environment
 # requires a reviewer's click.
+#
+# This job runs on the PROD server's own runner. Nothing ever reaches into
+# prod: the runner connects outbound to GitHub, and the image is FETCHED
+# from staging (pull direction) — see demo/README.md, "The real-hardware plan".
 name: release
 
 on:
@@ -12,16 +16,26 @@ on:
 
 jobs:
   deploy-production:
-    runs-on: [self-hosted, staging]
+    runs-on: [self-hosted, prod]
     environment: production
     steps:
       - uses: actions/checkout@v4
 
-      - name: Deploy the already-tested package to production
+      - name: Fetch the tested image from staging
         run: |
           SHA=$(git rev-parse --short HEAD)
-          # build-once guard: the image must already exist; a release never builds
+          # On real hardware (two servers), prod pulls the image from staging
+          # with a fetch-only ssh key:
+          #   ssh fetch-only@staging "docker save demo-service:git-$SHA" | docker load
+          # In this demo both "servers" share one docker daemon, so we verify
+          # the image already exists instead (build-once guard: a release
+          # that would need to build must fail).
           docker image inspect demo-service:git-$SHA >/dev/null
+          echo "image demo-service:git-$SHA present"
+
+      - name: Deploy to production
+        run: |
+          SHA=$(git rev-parse --short HEAD)
           docker rm -f demo-service-prod 2>/dev/null || true
           docker run -d --name demo-service-prod --restart unless-stopped \
             -p 8082:8000 demo-service:git-$SHA

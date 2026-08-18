@@ -27,7 +27,7 @@ jobs:
           SHA=$(git rev-parse --short HEAD)
           docker rm -f demo-service-staging 2>/dev/null || true
           docker run -d --name demo-service-staging --restart unless-stopped \
-            -p 8080:8000 demo-service:git-$SHA
+            -p 8081:8000 demo-service:git-$SHA
           sleep 2
           docker exec demo-service-staging python3 -c \
             "import urllib.request; print(urllib.request.urlopen('http://localhost:8000/').read().decode())" \

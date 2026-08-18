@@ -1,0 +1,29 @@
+# The release robot. Wakes only when a human pushes a version tag (v0.2.0).
+#
+# It builds NOTHING. Production runs the exact sealed image that staging has
+# been running and e2e-testing since its merge (build once). Before touching
+# production it stops at the approval gate: the "production" environment
+# requires a reviewer's click.
+name: release
+
+on:
+  push:
+    tags: ['v*']
+
+jobs:
+  deploy-production:
+    runs-on: [self-hosted, staging]
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy the already-tested package to production
+        run: |
+          SHA=$(git rev-parse --short HEAD)
+          # build-once guard: the image must already exist; a release never builds
+          docker image inspect demo-service:git-$SHA >/dev/null
+          docker rm -f demo-service-prod 2>/dev/null || true
+          docker run -d --name demo-service-prod --restart unless-stopped \
+            -p 8082:8000 demo-service:git-$SHA
+          sleep 2
+          docker run --rm --network host demo-service:git-$SHA python3 -c "import json,urllib.request; b=json.load(urllib.request.urlopen('http://localhost:8082/',timeout=5)); assert b['service']=='demo-service', b; assert b['git_sha']=='$SHA', b; print('production live:', b)"

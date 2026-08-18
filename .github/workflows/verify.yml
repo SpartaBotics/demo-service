@@ -1,0 +1,16 @@
+# The robot. Wakes up on every pull request, gets a fresh clean machine,
+# and runs the tests. Its verdict is what branch protection will later
+# use to lock or unlock the merge button.
+name: verify
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run tests
+        run: python3 -m unittest app -v

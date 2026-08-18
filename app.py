@@ -19,7 +19,7 @@ def status():
 
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
-        body = json.dumps(status).encode()
+        body = json.dumps(status()).encode()
         self.send_response(200)
         self.send_header("Content-Type", "application/json")
         self.end_headers()

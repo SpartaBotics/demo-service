@@ -5,9 +5,9 @@ Run its tests: python3 -m unittest app
 """
 import json
 import os
-from http.server import BaseHTTPRequestHandler, HTTPServer
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-VERSION = "0.2.0"
+VERSION = "0.2.1"
 # Baked into the package at build time; "dev" when running from source.
 GIT_SHA = os.environ.get("GIT_SHA", "dev")
 
@@ -42,5 +42,8 @@ class TestStatus(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    print(f"demo-service {VERSION} ({GIT_SHA}) listening on :8000")
-    HTTPServer(("0.0.0.0", 8000), Handler).serve_forever()
+    print(f"demo-service {VERSION} ({GIT_SHA}) listening on :8000", flush=True)
+    # ThreadingHTTPServer: one thread per client, so a client that connects
+    # and never completes its request can no longer freeze everyone else
+    # (real prod incident, 2026-08-18).
+    ThreadingHTTPServer(("0.0.0.0", 8000), Handler).serve_forever()
